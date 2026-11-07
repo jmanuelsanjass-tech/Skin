@@ -1,56 +1,51 @@
-# Skin
+# Skin - Ultimate Hi-Fi Audio System & Music Player
 
-Aplicación Android nativa con interfaz retro/vintage y medidores visuales del nivel de audio capturado por el micrófono.
+Aplicación Android nativa desarrollada en Kotlin y Jetpack Compose que combina un reproductor de música de alta fidelidad con integración completa de **Navidrome (Subsonic API)**, reproducción de archivos locales del dispositivo (FLAC, MP3, WAV, AAC, OGG), efectos de audio avanzados, medidores analógicos VU en tiempo real y notificaciones multimedia en segundo plano.
 
-## Nota técnica
+---
 
-### Tecnologías y configuración
+## Nota Técnica
+
+### Tecnologías y Configuración
 
 - **Lenguaje:** Kotlin.
-- **Interfaz:** Jetpack Compose, Material 3 y animaciones de Compose.
+- **Interfaz:** Jetpack Compose, Material 3, animaciones avanzadas y diseño minimalista azul cálido (`Primary = Color(0xFF3B82F6)`, `Background = Color(0xFF0F172A)`).
+- **Reproducción de Audio:** AndroidX Media3 ExoPlayer y `MediaSession` (para control en segundo plano, pantalla de bloqueo y botones de hardware).
+- **Streaming y API:** Retrofit 2, OkHttp 3 y API Subsonic (Navidrome).
 - **Módulo:** `:app`.
-- **Identificador de aplicación y namespace:** `com.example.skin`.
-- **SDK mínimo:** API 24.
-- **SDK objetivo:** API 36.
-- **SDK de compilación:** API 37.
+- **Identificador y Namespace:** `com.example.skin`.
+- **SDK Mínimo:** API 24.
+- **SDK Objetivo / Compilación:** API 36 / API 37.
 - **Compatibilidad Java:** Java 11.
-- **Build:** Android Gradle Plugin 9.3.1, Kotlin Compose plugin 2.2.10 y Gradle 9.5.
-- **Dependencias principales:** AndroidX Core KTX, Activity Compose, Lifecycle Runtime KTX, Compose UI y Material 3.
 
-Las versiones de dependencias se centralizan en `gradle/libs.versions.toml`; Gradle resuelve dependencias desde Google Maven y Maven Central.
+---
 
-### Estructura relevante
+### Módulos y Arquitectura
 
-- `app/src/main/java/com/example/skin/MainActivity.kt`: actividad, navegación, captura de audio y componentes visuales.
-- `app/src/main/java/com/example/skin/ui/theme/`: paleta, tema Material y tipografía.
-- `app/src/main/AndroidManifest.xml`: actividad de inicio y permisos.
-- `app/src/test/`: pruebas locales JVM.
-- `app/src/androidTest/`: pruebas instrumentadas Android.
+1. **Navidrome Client (`com.example.skin.navidrome`)**:
+   - `NavidromeApiService.kt`: Clientes Retrofit para Subsonic (`ping`, `getArtists`, `getArtist`, `getAlbumList2`, `getAlbum`, `search3`, `getPlaylists`, `getGenres`, `getSongsByGenre`, `getStarred2`, `star`, `unstar`). Generación de tokens MD5 con salt.
+   - `MusicPlayerManager.kt`: Gestor de ExoPlayer que maneja reproducción por streaming (Navidrome) o archivos locales (`/path/...`), colas de reproducción, bucle (`repeatMode`), reproducción aleatoria (`shuffle`) y efectos de audio.
 
-### Funcionamiento
+2. **Efectos de Audio (`com.example.skin.audiofx`)**:
+   - `AudioEffectsManager.kt`: Envoltorio para ecualizador gráfico de bandas (presets Rock, Pop, Jazz, Clásica), Realce de Graves (*Bass Boost*) y Sonido Envolvente (*Surround Sound*).
 
-1. `MainActivity` habilita el diseño edge-to-edge y presenta `GamerApp` con `SkinTheme`.
-2. La pantalla inicial muestra una consola oscura con detalles ámbar y un botón principal animado.
-3. Al activar el botón, la aplicación comprueba el permiso `RECORD_AUDIO` y lo solicita si hace falta. Si se concede, cambia a la pantalla de medidores.
-4. `AudioRecord` lee audio mono PCM de 16 bits a 54.1 kHz. El procesamiento calcula el RMS de cada bloque, deriva un nivel aproximado y lo suaviza con ataque rápido y caída gradual.
-5. El nivel alimenta una barra de 80 segmentos LED y dos medidores analógicos dibujados en Canvas. El control de sensibilidad aparece temporalmente después de una interacción.
+3. **Interfaz de Usuario y Pantallas (`MainActivity.kt`)**:
+   - **Consola Principal / Hub**: Permite alternar entre el **Medidor Analógico de Audio (VU Meters)** y el **Reproductor Hi-Fi Navidrome**.
+   - **Medidor Analógico (VU Meter)**: Captura de audio en tiempo real desde el micrófono mediante `AudioRecord` (PCM de 16 bits a 54.1 kHz), cálculo de RMS/dB, barra LED de 80 segmentos y agujas analógicas móviles en Canvas.
+   - **Biblioteca Hi-Fi**: Pestañas deslizantes (`LazyRow`) para **Albums**, **Artists**, **Device** (audio local del teléfono), **Genres** y **Favs**, con barra de búsqueda rápida y opciones de ordenamiento.
+   - **Reproductor Glass Deck**: Diseño inspirado en interfaces de alta fidelidad, con carátula del álbum, barra de progreso interactiva, letras sincronizadas (Karaoke LRC), panel de ecualización y cola de reproducción con opciones de descarga.
+   - **Descarga de Audio**: Funcionalidad de descarga de pistas individuales o masivas (`Descarga Masiva`) con cuadro de diálogo emergente para seleccionar la carpeta de destino en el almacenamiento del dispositivo.
 
-La medición es una representación visual relativa del nivel digital recibido; no es una medición calibrada de presión sonora (dB SPL). Los medidores izquierdo y derecho muestran el mismo nivel, con una pequeña diferencia de escala en el segundo; no son canales estéreo independientes.
+---
 
-### Permisos y datos
+### Permisos y Configuración de Red
 
-- El manifiesto declara el permiso `android.permission.RECORD_AUDIO`, solicitado durante la ejecución.
-- La función principal es la medición local del micrófono. En el código fuente revisado no se observa integración con backend ni persistencia propia de lecturas.
+- `RECORD_AUDIO`: Captura de audio por micrófono para los vúmetros analógicos.
+- `READ_EXTERNAL_STORAGE` / `READ_MEDIA_AUDIO`: Lectura y reproducción de archivos de audio locales del dispositivo.
+- Soporte para tráfico HTTP de red local (configurado en `network_security_config.xml`).
 
-### Pruebas
+---
 
-El proyecto contiene una prueba unitaria de ejemplo que verifica una suma y una prueba instrumentada de ejemplo que verifica el identificador de paquete. No cubren actualmente la captura de audio, la navegación ni los componentes de medición.
+### Pruebas y Verificación
 
-### Observaciones técnicas
-
-- La lógica de interfaz, captura y procesamiento de audio está concentrada en `MainActivity.kt`; separar la captura en un componente o capa de dominio facilitaría pruebas y mantenimiento.
-- `SecondScreen` recibe una acción para volver a la pantalla inicial, pero el código visible no presenta un control que la invoque.
-- Conviene validar los errores de inicialización y lectura de `AudioRecord` en dispositivos reales, además del ciclo de vida al abandonar la pantalla o detener la actividad.
-- Los medidores y el nivel mostrado deben considerarse indicadores visuales aproximados, no instrumentos de audio calibrados.
-
-La nota técnica también está disponible en [NOTA_TECNICA.md](NOTA_TECNICA.md).
+El proyecto compila y se despliega correctamente con `app:assembleDebug`, integrando control multimedia a nivel de sistema operativo y procesamiento de audio de alta fidelidad.
